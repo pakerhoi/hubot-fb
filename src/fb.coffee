@@ -75,7 +75,7 @@ class FBMessenger extends Adapter
         self = @
 
         data = JSON.stringify(data)
-        console.log 'Sending' data
+        console.log 'Sending' + data
         @robot.http(@messageEndpoint)
             .query({access_token:self.token})
             .header('Content-Type', 'application/json')
