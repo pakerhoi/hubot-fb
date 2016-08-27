@@ -42,9 +42,10 @@ class FBMessenger extends Adapter
         @msg_maxlength = 320
 
     send: (envelope, strings...) ->
-        @_sendText envelope.user.id, msg for msg in strings
         if envelope.fb?.richMsg?
             @_sendRich envelope.user.id, envelope.fb.richMsg
+        else
+            @_sendText envelope.user.id, msg for msg in strings
 
     _sendText: (user, msg) ->
         data = {
