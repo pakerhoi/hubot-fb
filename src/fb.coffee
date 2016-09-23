@@ -173,7 +173,7 @@ class FBMessenger extends Adapter
         self = @
 
         @robot.http(@apiURL + '/' + userId)
-            .query({fields:"first_name,last_name,profile_pic",access_token:self.token})
+            .query({fields:"first_name,last_name,profile_pic,locale,timezone,gender",access_token:self.token})
             .get() (error, response, body) ->
                 if error
                     self.robot.logger.error 'Error getting user profile: #{error}'
