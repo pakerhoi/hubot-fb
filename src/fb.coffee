@@ -129,6 +129,11 @@ class FBMessenger extends Adapter
             @_processAttachment event, envelope, attachment for attachment in envelope.attachments
         if event.message.text?
             text = if @autoHear then @_autoHear event.message.text, envelope.room else event.message.text
+
+            # TODO: Quick reply payload override the text
+            if event.message.quick_reply?.payload
+                text = event.message.quick_reply?.payload
+
             msg = new TextMessage envelope.user, text, event.message.mid
             @receive msg
             @robot.logger.info "Reply message to room/message: " + envelope.user.name + "/" + event.message.mid
