@@ -78,17 +78,17 @@ class FBMessenger extends Adapter
         data = JSON.stringify(data)
         console.log 'Sending' + data
         @robot.http(@messageEndpoint)
-            .query({access_token:self.token})
-            .header('Content-Type', 'application/json')
-            .post(data) (error, response, body) ->
-                if error
-                    self.robot.logger.error 'Error sending message: #{error}'
-                    return
-                unless response.statusCode in [200, 201]
-                    self.robot.logger.error "Send request returned status " +
+        .query({access_token:self.token})
+        .header('Content-Type', 'application/json')
+        .post(data) (error, response, body) ->
+            if error
+                self.robot.logger.error 'Error sending message: #{error}'
+                return
+            unless response.statusCode in [200, 201]
+                self.robot.logger.error "Send request returned status " +
                     "#{response.statusCode}. data='#{data}'"
-                    self.robot.logger.error body
-                    return
+                self.robot.logger.error body
+                return
 
     reply: (envelope, strings...) ->
         @send envelope, strings...
@@ -139,9 +139,9 @@ class FBMessenger extends Adapter
             @robot.logger.info "Reply message to room/message: " + envelope.user.name + "/" + event.message.mid
 
     _autoHear: (text, chat_id) ->
-        # If it is a private chat, automatically prepend the bot name if it does not exist already.
+# If it is a private chat, automatically prepend the bot name if it does not exist already.
         if (chat_id > 0)
-            # Strip out the stuff we don't need.
+# Strip out the stuff we don't need.
             text = text.replace(new RegExp('^@?' + @robot.name.toLowerCase(), 'gi'), '');
             text = text.replace(new RegExp('^@?' + @robot.alias.toLowerCase(), 'gi'), '') if @robot.alias
             text = @robot.name + ' ' + text
@@ -173,25 +173,25 @@ class FBMessenger extends Adapter
         self = @
 
         @robot.http(@apiURL + '/' + userId)
-            .query({fields:"first_name,last_name,profile_pic,locale,timezone,gender",access_token:self.token})
-            .get() (error, response, body) ->
-                if error
-                    self.robot.logger.error 'Error getting user profile: #{error}'
-                    return
-                unless response.statusCode is 200
-                    self.robot.logger.error "Get user profile request returned status " +
+        .query({fields:"first_name,last_name,profile_pic,locale,timezone,gender",access_token:self.token})
+        .get() (error, response, body) ->
+            if error
+                self.robot.logger.error 'Error getting user profile: #{error}'
+                return
+            unless response.statusCode is 200
+                self.robot.logger.error "Get user profile request returned status " +
                     "#{response.statusCode}. data='#{body}'"
-                    self.robot.logger.error body
-                    return
-                userData = JSON.parse body
+                self.robot.logger.error body
+                return
+            userData = JSON.parse body
 
-                userData.name = userData.first_name
-                userData.room = page
+            userData.name = userData.first_name
+            userData.room = page
 
-                user = new User userId, userData
-                self.robot.brain.data.users[userId] = user
+            user = new User userId, userData
+            self.robot.brain.data.users[userId] = user
 
-                callback user
+            callback user
 
 
     run: ->
@@ -213,9 +213,9 @@ class FBMessenger extends Adapter
             @emit 'error', new Error 'The environment variable "FB_WEBHOOK_BASE" is required. See https://github.com/chen-ye/hubot-fb/blob/master/README.md for details.'
 
         @robot.http(@subscriptionEndpoint)
-            .query({access_token:self.token})
-            .post() (error, response, body) ->
-                self.robot.logger.info "subscribed app to page: " + body
+        .query({access_token:self.token})
+        .post() (error, response, body) ->
+            self.robot.logger.info "subscribed app to page: " + body
 
         @robot.router.get [@routeURL], (req, res) ->
             if req.param('hub.mode') == 'subscribe' and req.param('hub.verify_token') == self.vtoken
@@ -231,22 +231,22 @@ class FBMessenger extends Adapter
             res.send 200
 
         @robot.http(@appAccessTokenEndpoint)
-            .get() (error, response, body) ->
-                self.app_access_token = body.split("=").pop()
-                self.robot.http(self.setWebhookEndpoint)
-                .query(
-                    object: 'page',
-                    callback_url: self.webhookURL
-                    fields: 'messaging_optins, messages, message_deliveries, messaging_postbacks'
-                    verify_token: self.vtoken
-                    access_token: self.app_access_token
-                    )
-                .post() (error2, response2, body2) ->
-                    self.robot.logger.info "FB webhook set/updated: " + body2
+        .get() (error, response, body) ->
+            self.app_access_token = body.split("=").pop()
+            self.robot.http(self.setWebhookEndpoint)
+            .query(
+                object: 'page',
+                callback_url: self.webhookURL
+                fields: 'messaging_optins, messages, message_deliveries, messaging_postbacks'
+                verify_token: self.vtoken
+                access_token: self.app_access_token
+            )
+            .post() (error2, response2, body2) ->
+                self.robot.logger.info "FB webhook set/updated: " + body2
 
         @robot.logger.info "FB-adapter initialized"
         @emit "connected"
-
+        @robot.emit "fb_initialized", @apiURL, @token
 
 exports.use = (robot) ->
     new FBMessenger robot
