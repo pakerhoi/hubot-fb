@@ -90,7 +90,7 @@ class FBMessenger extends Adapter
         method: 'POST'
         json: rawData
 
-      dashbot.logOutgoing(requestData, response.body)
+      dashbot.logOutgoing(requestData, body)
 
       if error
         self.robot.logger.error 'Error sending message: #{error}'
