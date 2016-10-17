@@ -73,6 +73,7 @@ class FBMessenger extends Adapter
     @_sendAPI data
 
   _sendAPI: (data) ->
+    rawData = data
     self = @
 
     data = JSON.stringify(data)
@@ -82,12 +83,12 @@ class FBMessenger extends Adapter
     .query({access_token: self.token})
     .header('Content-Type', 'application/json')
     .post(data) (error, response, body) ->
-# Dashbot log outgoing
+    # Dashbot log outgoing
       requestData =
         url: @messageEndpoint
         qs: {access_token: self.token}
         method: 'POST'
-        json: data
+        json: rawData
 
       dashbot.logOutgoing(requestData, response.body)
 
