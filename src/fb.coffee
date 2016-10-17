@@ -7,7 +7,7 @@ catch
 Mime = require 'mime'
 crypto = require 'crypto'
 inspect = require('util').inspect
-
+dashbot = require('dashbot')(process.env.DASHBOT_API_KEY).facebook
 
 class FBMessenger extends Adapter
 
@@ -76,11 +76,21 @@ class FBMessenger extends Adapter
         self = @
 
         data = JSON.stringify(data)
-        console.log 'Sending' + data
+        console.log '>>>Sending' + data
+
         @robot.http(@messageEndpoint)
         .query({access_token:self.token})
         .header('Content-Type', 'application/json')
         .post(data) (error, response, body) ->
+            # Dashbot log outgoing
+            requestData =
+                url: @messageEndpoint
+                qs: {access_token: self.token}
+                method: 'POST'
+                json: data
+
+            dashbot.logOutgoing(requestData, response.body)
+
             if error
                 self.robot.logger.error 'Error sending message: #{error}'
                 return
@@ -225,7 +235,9 @@ class FBMessenger extends Adapter
                 res.send 400
 
         @robot.router.post [@routeURL], (req, res) ->
-            self.robot.logger.debug "Received payload: " + JSON.stringify(req.body)
+          # Dashbot log incoming
+          dashbot.logIncoming req.body
+          self.robot.logger.debug "Received payload: " + JSON.stringify(req.body)
             messaging_events = req.body.entry[0].messaging
             self._receiveAPI event for event in messaging_events
             res.send 200
