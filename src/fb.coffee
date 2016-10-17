@@ -238,11 +238,11 @@ class FBMessenger extends Adapter
         res.send 400
 
     @robot.router.post [@routeURL], (req, res) ->
-# Dashbot log incoming
+      # Dashbot log incoming
       dashbot.logIncoming req.body
       self.robot.logger.debug "Received payload: " + JSON.stringify(req.body)
-        messaging_events = req.body.entry[0].messaging
-        self._receiveAPI event for event in messaging_events
+      messaging_events = req.body.entry[0].messaging
+      self._receiveAPI event for event in messaging_events
       res.send 200
 
     @robot.http(@appAccessTokenEndpoint)
