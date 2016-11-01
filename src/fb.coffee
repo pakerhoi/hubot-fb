@@ -8,6 +8,7 @@ Mime = require 'mime'
 crypto = require 'crypto'
 inspect = require('util').inspect
 dashbot = require('dashbot')(process.env.DASHBOT_API_KEY).facebook
+async = require('async')
 
 class FBMessenger extends Adapter
 
@@ -42,12 +43,20 @@ class FBMessenger extends Adapter
     @msg_maxlength = 320
 
   send: (envelope, strings...) ->
-    if envelope.fb?.richMsg?
-      @_sendRich envelope.user.id, envelope.fb.richMsg
-    else
-      @_sendText envelope.user.id, msg for msg in strings
+    self = @
 
-  _sendText: (user, msg) ->
+    if envelope.fb?.richMsg?
+      @_sendRich envelope.user.id, envelope.fb.richMsg, (err) ->
+    else
+      async.eachSeries strings, (string, callback) ->
+        self._sendText envelope.user.id, string, callback
+        , (err) ->
+          if( err )
+            console.log 'Messages sent failed'
+          else
+            console.log('messages sent successfully')
+
+  _sendText: (user, msg, callback) ->
     data = {
       recipient: {id: user},
       message: {}
@@ -63,29 +72,29 @@ class FBMessenger extends Adapter
     else
       data.message.text = msg
 
-    @_sendAPI data
+    @_sendAPI data, callback
 
-  _sendRich: (user, richMsg) ->
+  _sendRich: (user, richMsg, callback) ->
     data = {
       recipient: {id: user},
       message: richMsg
     }
-    @_sendAPI data
+    @_sendAPI data, callback
 
-  _sendAPI: (data) ->
+  _sendAPI: (data, callback) ->
     rawData = data
     self = @
 
     data = JSON.stringify(data)
     console.log '>>>Sending' + data
 
-    @robot.http(@messageEndpoint)
+    self.robot.http(self.messageEndpoint)
     .query({access_token: self.token})
     .header('Content-Type', 'application/json')
     .post(data) (error, response, body) ->
-    # Dashbot log outgoing
+# Dashbot log outgoing
       requestData =
-        url: @messageEndpoint
+        url: self.messageEndpoint
         qs: {access_token: self.token}
         method: 'POST'
         json: rawData
@@ -94,12 +103,14 @@ class FBMessenger extends Adapter
 
       if error
         self.robot.logger.error 'Error sending message: #{error}'
-        return
+        return callback(error)
       unless response.statusCode in [200, 201]
         self.robot.logger.error "Send request returned status " +
             "#{response.statusCode}. data='#{data}'"
         self.robot.logger.error body
-        return
+        return callback('Error sending message')
+
+      return callback()
 
   reply: (envelope, strings...) ->
     @send envelope, strings...
@@ -239,7 +250,7 @@ class FBMessenger extends Adapter
         res.send 400
 
     @robot.router.post [@routeURL], (req, res) ->
-      # Dashbot log incoming
+# Dashbot log incoming
       dashbot.logIncoming req.body
       self.robot.logger.debug "Received payload: " + JSON.stringify(req.body)
       messaging_events = req.body.entry[0].messaging
