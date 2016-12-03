@@ -9,6 +9,7 @@ crypto = require 'crypto'
 inspect = require('util').inspect
 dashbot = require('dashbot')(process.env.DASHBOT_API_KEY).facebook
 async = require('async')
+_ = require('lodash')
 
 class FBMessenger extends Adapter
 
@@ -43,18 +44,33 @@ class FBMessenger extends Adapter
     @msg_maxlength = 320
 
   send: (envelope, strings...) ->
+    callback = undefined
+    copy = strings.slice(0)
+    if typeof(copy[copy.length - 1]) == 'function'
+      callback = copy.pop()
+
     self = @
 
-    if envelope.fb?.richMsg?
-      @_sendRich envelope.user.id, envelope.fb.richMsg, (err) ->
-    else
-      async.eachSeries strings, (string, callback) ->
-        self._sendText envelope.user.id, string, callback
-        , (err) ->
-          if( err )
-            console.log 'Messages sent failed'
+    #    if envelope.fb?.richMsg?
+    #      @_sendRich envelope.user.id, envelope.fb.richMsg, (err) ->
+    #    else
+    async.eachSeries \
+      strings, \
+      ((string, callback) -> self._sendText envelope.user.id, string, callback), \
+      (err) ->
+        if( err )
+          console.log 'Messages sent failed'
+        else
+          if envelope.fb?.richMsg?
+            self._sendRich envelope.user.id, envelope.fb.richMsg, (err) ->
+              console.log('messages sent successfully')
+              if callback
+                callback()
           else
             console.log('messages sent successfully')
+            if callback
+              callback()
+
 
   _sendText: (user, msg, callback) ->
     data = {
