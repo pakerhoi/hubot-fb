@@ -108,14 +108,17 @@ class FBMessenger extends Adapter
     .query({access_token: self.token})
     .header('Content-Type', 'application/json')
     .post(data) (error, response, body) ->
-# Dashbot log outgoing
+    # Dashbot log outgoing
       requestData =
         url: self.messageEndpoint
         qs: {access_token: self.token}
         method: 'POST'
         json: rawData
 
-      dashbot.logOutgoing(requestData, JSON.parse body)
+      try
+        dashbot.logOutgoing(requestData, JSON.parse body)
+      catch e
+        self.robot.logger.debug 'error in Dashbot:', e
 
       if error
         self.robot.logger.error 'Error sending message: #{error}'
@@ -256,7 +259,12 @@ class FBMessenger extends Adapter
     @robot.http(@subscriptionEndpoint)
     .query({access_token: self.token})
     .post() (error, response, body) ->
-      self.robot.logger.info "subscribed app to page: " + body
+      if error
+        self.robot.logger.error "Error subscribing app to page: " + error
+        process.exit()
+        return
+
+      self.robot.logger.info "subscribed app to page: response: " + response+ ' body: ' + body
 
     @robot.router.get [@routeURL], (req, res) ->
       if req.param('hub.mode') == 'subscribe' and req.param('hub.verify_token') == self.vtoken
@@ -266,8 +274,13 @@ class FBMessenger extends Adapter
         res.send 400
 
     @robot.router.post [@routeURL], (req, res) ->
-# Dashbot log incoming
-      dashbot.logIncoming req.body
+    # Dashbot log incoming
+
+      try
+        dashbot.logIncoming req.body
+      catch e
+        self.robot.logger.debug 'error in Dashbot:', e
+
       self.robot.logger.debug "Received payload: " + JSON.stringify(req.body)
       messaging_events = req.body.entry[0].messaging
       self._receiveAPI event for event in messaging_events
@@ -275,6 +288,13 @@ class FBMessenger extends Adapter
 
     @robot.http(@appAccessTokenEndpoint)
     .get() (error, response, body) ->
+      if error
+        self.robot.logger.error "Error getting app access token: " + error
+        process.exit()
+        return
+
+      self.robot.logger.info "app access token response: "+ response + " body: "  + body
+
       self.app_access_token = body.split("=").pop()
       self.robot.http(self.setWebhookEndpoint)
       .query(
