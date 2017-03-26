@@ -155,12 +155,18 @@ class FBMessenger extends Adapter
 
             self._dispatch event, new_user
       else
+        self.robot.logger.debug "User exists"
+
         if not user.id or not user.room
           user.id = im_user_id
           user.room = im_page_id
+          self.robot.Users.updateUser user, (err, updated_user) ->
+            if(err)
+              self.robot.logger.debug 'error:', err
 
-        self.robot.logger.debug "User exists"
-        self._dispatch event, user
+            self._dispatch event, updated_user
+        else
+          self._dispatch event, user
 
 #      user = self.robot.brain.data.users[event.sender.id]
 
