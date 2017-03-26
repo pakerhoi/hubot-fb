@@ -155,6 +155,10 @@ class FBMessenger extends Adapter
 
             self._dispatch event, new_user
       else
+        if not user.id or not user.room
+          user.id = im_user_id
+          user.room = im_page_id
+
         self.robot.logger.debug "User exists"
         self._dispatch event, user
 
