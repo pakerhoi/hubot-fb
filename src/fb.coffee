@@ -137,14 +137,28 @@ class FBMessenger extends Adapter
   _receiveAPI: (event) ->
     self = @
 
-    user = @robot.brain.data.users[event.sender.id]
-    unless user?
-      self.robot.logger.debug "User doesn't exist, creating"
-      @_getUser event.sender.id, event.recipient.id, (user) ->
+    im_page_id = event.recipient.id #page
+    im_user_id = event.sender.id #user
+
+    im_id = 1 # facebook IM id
+
+    self.robot.Users.getUserByIM im_id, im_page_id, im_user_id, (err, user) ->
+      if(err)
+        self.robot.logger.debug 'error:', err
+
+      unless user?
+        self.robot.logger.debug "User doesn't exist, creating"
+        self._getUser im_user_id, im_page_id, (user_data) ->
+          self.robot.Users.createUserFromFacebook user_data, (err, new_user) ->
+            if(err)
+              self.robot.logger.debug 'error:', err
+
+            self._dispatch event, new_user
+      else
+        self.robot.logger.debug "User exists"
         self._dispatch event, user
-    else
-      self.robot.logger.debug "User exists"
-      self._dispatch event, user
+
+#      user = self.robot.brain.data.users[event.sender.id]
 
   _dispatch: (event, user) ->
     envelope = {
@@ -233,7 +247,7 @@ class FBMessenger extends Adapter
       userData.room = page
 
       user = new User userId, userData
-      self.robot.brain.data.users[userId] = user
+      #      self.robot.brain.data.users[userId] = user
 
       callback user
 
@@ -274,8 +288,9 @@ class FBMessenger extends Adapter
         res.send 400
 
     @robot.router.post [@routeURL], (req, res) ->
-    # Dashbot log incoming
+      res.send 200
 
+      # Dashbot log incoming
       try
         dashbot.logIncoming req.body
       catch e
@@ -284,7 +299,6 @@ class FBMessenger extends Adapter
       self.robot.logger.debug "Received payload: " + JSON.stringify(req.body)
       messaging_events = req.body.entry[0].messaging
       self._receiveAPI event for event in messaging_events
-      res.send 200
 
     @robot.http(@appAccessTokenEndpoint)
     .get() (error, response, body) ->
