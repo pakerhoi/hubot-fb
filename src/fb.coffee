@@ -38,7 +38,7 @@ class FBMessenger extends Adapter
     @pageURL = @apiURL + '/' + @page_id
     @messageEndpoint = @pageURL + '/messages?access_token=' + @token
     @subscriptionEndpoint = @pageURL + '/subscribed_apps?access_token=' + @token
-    @appAccessTokenEndpoint = 'https://graph.facebook.com/oauth/access_token?client_id=' + @app_id + '&client_secret=' + @app_secret + '&grant_type=client_credentials'
+    @appAccessTokenEndpoint = @apiURL + '/oauth/access_token?client_id=' + @app_id + '&client_secret=' + @app_secret + '&grant_type=client_credentials'
     @setWebhookEndpoint = @pageURL + '/subscriptions'
 
     @msg_maxlength = 320
@@ -319,7 +319,8 @@ class FBMessenger extends Adapter
 
       self.robot.logger.info "app access token response: "+ response + " body: "  + body
 
-      self.app_access_token = body.split("=").pop()
+      parsed_body = JSON.parse body
+      self.app_access_token = parsed_body['access_token'] or body.split("=").pop()
       self.robot.http(self.setWebhookEndpoint)
       .query(
         object: 'page',
